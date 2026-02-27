@@ -1,89 +1,161 @@
 # 📘 Service Business Manager  
-## High-Level Design Document (v1 – Simplified, AI Limited to Marketing)
+## High-Level Product & System Specification (v1.1)
 
 ---
 
 # 1. Product Overview
 
-## Vision
+## 1.1 Vision
 
-A simple, organized platform that helps small service businesses manage:
+Service Business Manager is a multi-tenant SaaS platform designed to help small service-based businesses:
 
-- Jobs
-- Customers
-- Scheduling
-- Light financial tracking
-- Marketing content creation
+- Organize their operations
+- Track revenue and expenses
+- Manage jobs and customers
+- Schedule work
+- Generate marketing content
 
 Core promise:
 
 > One place to organize your business and grow it.
 
-Target Users:
-- Auto detailing
-- Window washing
-- Expandable to other service businesses later
+The system prioritizes:
+- Simplicity
+- Speed
+- Professional presentation
+- Clear workflows
+- Minimal cognitive load
+
+This product is intentionally focused and avoids unnecessary complexity.
 
 ---
 
-# 2. System Architecture Overview
+## 1.2 Target Users
 
-### Application Structure
+Primary focus:
+- Auto detailing businesses
+- Window washing businesses
 
-- Public website (marketing site)
-- Authenticated application
-- Modular page-based layout
-
-Core principles:
-
-- Clean and simple
-- Fast workflows
-- No unnecessary complexity
-- Easy to learn
+Future expansion:
+- Other local service businesses (HVAC, landscaping, cleaning, etc.)
 
 ---
 
-# 3. Public Website (Unauthenticated)
+# 2. Product Model
 
-## 3.1 Main Landing Page
+## 2.1 SaaS Multi-Tenant Architecture
+
+This application is a multi-tenant SaaS product.
+
+- Each company has its own isolated dataset.
+- Users belong to exactly one company in v1.
+- Company data must be fully isolated at the database level.
+- No cross-company access is allowed.
+
+Security and isolation are core product principles.
+
+---
+
+## 2.2 Subscription Model
+
+Each company has a subscription status:
+
+- Trial
+- Active
+- Canceled
+
+Trial includes full feature access for a limited time.
+
+If subscription expires:
+- Access to authenticated pages may be restricted (exact enforcement defined in Low-Level Design).
+- Company data remains stored.
+
+Stripe manages billing.
+
+---
+
+# 3. Technology Overview (Product-Level)
+
+The following technologies are foundational to the product:
+
+Frontend:
+- Next.js (App Router)
+- Responsive UI design
+
+Backend:
+- Supabase Edge Functions
+
+Database:
+- Supabase Postgres
+
+Authentication:
+- Supabase Auth (email/password only in v1)
+
+Storage:
+- Supabase Storage (private buckets)
+
+Billing:
+- Stripe
+
+AI (Marketing Module Only):
+- OpenAI API
+- LangGraph orchestration
+
+AI is strictly limited to the Marketing module.
+
+No AI is used in:
+- Finance calculations
+- Scheduling
+- Job management
+- Dashboard analytics
+
+---
+
+# 4. Public Website (Unauthenticated)
+
+## 4.1 Main Landing Page
 
 ### Purpose
-Convert visitors into free trial users.
+Convert visitors into trial users.
 
-### Layout
+### Required Elements
 
-- Company logo at top
-- Short slogan underneath
-- Clear description of what the software does
+- Company logo
+- Short slogan
+- Clear description of value
 - Strong “Start Free Trial – No Credit Card Required” button
 - Smaller link to pricing
-- Login button for existing users
-- Professional, minimal design
+- Login button
 
 ### Behavior
 
-- No login required
-- Free trial button → onboarding
-- Pricing link → pricing page
+- Trial button → onboarding flow
+- Pricing → pricing page
 - Login → sign in page
+
+Design must:
+- Look professional
+- Feel modern
+- Work on desktop and mobile
 
 ---
 
-## 3.2 Pricing Page
+## 4.2 Pricing Page
 
 ### Layout
 
-- Single pricing option (v1)
+- Single pricing tier (v1)
 - Feature list
 - Subscribe button
 
 ### Behavior
 
-- Begins subscription process
+- Initiates Stripe checkout session
+- Subscription state stored on company record
 
 ---
 
-## 3.3 Sign In Page
+## 4.3 Sign In Page
 
 ### Layout
 
@@ -93,19 +165,21 @@ Convert visitors into free trial users.
 
 ### Behavior
 
-- Authenticates user
+- Authenticates via Supabase Auth
 - Redirects to Dashboard
+
+Passwords are never stored directly in application tables.
 
 ---
 
-## 3.4 Onboarding Page
+## 4.4 Onboarding Page
 
 ### Required Fields
 
-- Email (username)
-- Password (securely stored)
+- Email
+- Password
 - Company name
-- Service type (dropdown)
+- Service type
 
 ### Optional Fields
 
@@ -114,21 +188,24 @@ Convert visitors into free trial users.
 - Number of employees
 - Years in business
 - Estimated revenue
-- How they heard about us
+- Referral source
 
 ### Behavior
 
 - Creates company
 - Creates owner user
-- Redirects to dashboard
+- Starts trial
+- Redirects to Dashboard
 
 ---
 
-# 4. Authenticated Application Layout
+# 5. Authenticated Application Layout
 
-All internal pages share:
+All authenticated pages must use a shared layout shell.
 
-### Left Sidebar Navigation
+## 5.1 Sidebar Navigation (Required)
+
+Left sidebar contains:
 
 - Logo
 - Dashboard
@@ -139,19 +216,36 @@ All internal pages share:
 - Finance
 - Account Settings
 
-Active page is highlighted.
+Active page is visually highlighted.
 
 ---
 
-# 5. Dashboard
+## 5.2 Responsive Design Contract
+
+Desktop:
+- Sidebar always visible.
+
+Mobile:
+- Sidebar hidden by default.
+- Hamburger icon opens slide-over menu.
+- No horizontal scrolling allowed.
+- Tables collapse into vertical card layout.
+- Forms stack vertically.
+
+All pages must:
+- Appear professional.
+- Maintain consistent spacing and typography.
+- Adjust cleanly to screen size changes.
+
+---
+
+# 6. Dashboard
 
 ## Purpose
 
-Provide a clear overview of the business.
+Provide a high-level overview of business activity.
 
-## Layout
-
-Modular sections:
+## Sections
 
 - Today’s Schedule
 - Upcoming Jobs
@@ -161,26 +255,22 @@ Modular sections:
 
 ## Behavior
 
-- Clicking a section navigates to the relevant page
-- Finance summary auto-calculates totals
-- Marketing box may show reminders (e.g., “Follow up with inactive customers”)
+- Each section links to relevant module.
+- Finance summary auto-calculates.
+- No AI used here.
 
-No AI logic here — just smart filtering and reminders.
+Dashboard uses filtering logic only.
 
 ---
 
-# 6. Jobs Module
+# 7. Jobs Module
 
-## Jobs List Page
+## 7.1 Jobs List Page
 
-### Layout
+### Features
 
-- Header: “Jobs”
-- + Add Job button
-- Dropdown filter:
-  - Upcoming
-  - Past
-  - All
+- Add Job button
+- Filters (Upcoming, Past, All)
 - Sortable columns:
   - Customer Name
   - Address
@@ -190,187 +280,142 @@ No AI logic here — just smart filtering and reminders.
 
 ### Behavior
 
-- + opens modal
-- Clicking job opens edit view
-- Creating job with new name auto-creates customer
+- Clicking job opens edit view.
+- Creating job with new name auto-creates customer.
 
 ---
 
-## Create / Edit Job Modal
+## 7.2 Job Status Lifecycle
 
-Fields:
-
-- Customer (searchable dropdown)
-- Address
-- Date scheduled
-- Date created (auto)
-- Price
-- Notes
-- Photos
-- Lead source
-
-Status options:
 - Lead
 - Scheduled
 - Completed
 - Paid
 
----
-
-# 7. Customers Module
-
-## Customers List Page
-
-### Layout
-
-- + Add Customer
-- Search bar
-- Filters:
-  - Customer
-  - Prospect
-- Sortable columns:
-  - Name
-  - Address
-  - Phone
-  - Email
-  - Type
-
-Default sort: recently created.
-
-### Behavior
-
-- Clicking customer opens profile
-- Profile shows:
-  - Contact info
-  - Notes
-  - Job history
-  - Revenue from that customer
+Status progression reflects real-world workflow.
 
 ---
 
-# 8. Schedule Module
+# 8. Customers Module
 
-## Layout
+## Features
 
-- Week and Month view
-- Click to create:
-  - Job
-  - Event
-  - Task
-- Optional color coding
+- Add Customer button
+- Search
+- Filter (Customer / Prospect)
+- Sortable columns
 
-## Behavior
+Customer profile includes:
 
-- Creating a Job links to Jobs page
-- Events are standalone
-- Tasks link to task system
-- Updates automatically reflect across system
+- Contact info
+- Notes
+- Job history
+- Revenue total
 
 ---
 
-# 9. Finance Module (Lightweight Tracking)
+# 9. Schedule Module
+
+## Views
+
+- Week view
+- Month view
+
+Users can create:
+
+- Job
+- Event
+- Task
+
+Jobs created in Schedule are true Job records.
+
+Schedule is not a separate data source.
+
+---
+
+# 10. Finance Module (Lightweight Tracking)
 
 Not full accounting.
 
-## Layout
-
-Top Summary Boxes:
+## Top Summary
 
 - Revenue
-- Net Income (largest)
 - Expenses
+- Net Income
 
-Time filter:
+Time filters:
+
 - Week
 - Month
 - Year
 
-Below:
-Two columns:
+## Entry Types
 
-Revenue list  
-Expense list  
+- Revenue
+- Expense
 
-Each row:
-- Amount
-- Date
-- Linked job (optional)
+Each entry may link to a Job.
 
-## Behavior
+Totals are auto-calculated.
 
-- + Add Revenue
-- + Add Expense
-- Totals auto-calculate
-- Net = Revenue – Expenses
+No AI involved.
 
 ---
 
-# 10. Marketing Module (Only AI-Driven Section)
+# 11. Marketing Module (AI Only Section)
 
-This is the only area using AI.
+This is the only AI-powered module.
 
-## Layout
-
-Top section:
-Buttons to generate:
+## Content Types
 
 - Social Post
 - Email
 - SMS
 - Flyer
 
-Optional context box:
-- “What is this for?” (e.g., review reminder, seasonal promotion)
+## Flow
 
-Output display box:
-- Generated content
-- Copy button
-- Regenerate button
+1. User selects type.
+2. Optional context provided.
+3. AI generates content.
+4. Content is saved to history.
+5. User can copy or regenerate.
 
-Lower section:
-- History of created content
-- Delete option
+No automatic posting in v1.
 
-## Behavior
+AI responsibilities:
+- Generate marketing copy only.
 
-- User selects type
-- User optionally adds context
-- AI generates content
-- Content can be copied and used externally
-- No auto-posting in v1
+All validation and company logic occur outside AI.
 
 ---
 
-# 11. Account Settings
+# 12. Account Settings
 
-## Layout
+Includes:
 
-- Company info (editable)
+- Company info editing
 - Subscription info
 - Change password
 - Sign out
 
-## Behavior
-
-- Updates stored company data
-- Updates subscription
-
 ---
 
-# 12. MVP Scope
+# 13. MVP Scope (Strict)
 
 Must include:
 
-- Authentication
-- Company onboarding
+- Supabase Auth
+- Multi-tenant isolation
 - Dashboard
 - Jobs
 - Customers
 - Schedule
 - Finance tracking
-- Marketing content generator
+- Marketing AI
+- Stripe subscription integration
 
-Not included in v1:
+Must NOT include:
 
 - Payroll
 - Taxes
@@ -378,3 +423,25 @@ Not included in v1:
 - Inventory automation
 - Complex permissions
 - Social media integrations
+- Auto-post scheduling
+
+---
+
+# 14. Design System Placeholder
+
+To be defined:
+
+- Primary color
+- Secondary color
+- Accent color
+- Background color
+- Text color
+- Success / Warning / Error colors
+- Typography scale
+- Spacing system
+- Button styles
+- Card styles
+- Border radius
+- Shadow system
+
+Design must communicate professionalism and trust.

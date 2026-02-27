@@ -1,0 +1,14 @@
+Follow /docs/service_business_manager_high_level_design_v1.md and /docs/service_business_manager_low_level_design_v1.md exactly.
+
+Do not change architecture.
+Do not add features.
+RLS and company_id scoping must be enforced everywhere.
+Supabase Auth only.
+Edge Functions only for backend logic.
+AI only in Marketing via LangGraph.
+Stripe only in Billing module.
+No secrets in client code.
+All pages must use the shared AppShell with responsive sidebar behavior.
+Add lots of comments to core logic.
+
+Before coding, summarize the plan and list which files will be created/changed.

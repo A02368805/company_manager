@@ -1,357 +1,390 @@
 # 📘 Service Business Manager  
-## Low-Level Design Draft (v1 – AI Limited to Marketing)
-
-> Scope note: This low-level design describes internal components, data models, APIs, and behaviors for the v1 web app. AI is used only inside the Marketing module.
+## Low-Level Technical Design (v1 – Strict Architecture Contract)
 
 ---
 
-# 1. System Overview
+# ⚠️ THIS DOCUMENT IS A CONTRACT
 
-## 1.1 Architecture (v1)
-- Web App: Next.js (App Router)
-- API Layer: Next.js Route Handlers (`/app/api/*`) or Supabase Edge Functions
-- Database: Postgres
-- Auth: (Choose one) Supabase Auth / Clerk / NextAuth
-- Storage: Object storage for uploaded images (job photos, etc.)  
-- AI Provider: OpenAI (Marketing generation only)
-- Hosting: Vercel (frontend + API routes) + DB hosted (Supabase/Neon/etc.)
+Cursor must treat this document as the source of truth.
 
-## 1.2 Key Non-Functional Requirements
-- Fast UI interactions (lists, filtering, search)
-- Secure authentication + authorization (company isolation)
-- Reliable data integrity (jobs/customers/finance)
-- Auditability of key actions (created_by, updated_by, timestamps)
-- Simple + consistent UX patterns across modules
+It must NOT:
+
+- Invent new architecture patterns
+- Move logic to random places
+- Skip RLS
+- Put secrets in client code
+- Bypass company scoping
+- Collapse all logic into frontend components
+- Merge AI into non-marketing modules
+
+All implementation must follow this design strictly.
 
 ---
 
-# 2. Core Concepts & Domain Rules
+# 1. Architecture Overview
 
-## 2.1 Multi-Tenancy (Company Isolation)
-- Every record (except global config) is scoped to a `company_id`.
-- Users belong to exactly one company in v1 (simplifies onboarding and permissions).
-- All reads/writes must include `company_id` checks.
+## 1.1 Stack
 
-## 2.2 Relationship Rules
-- Creating a Job with a new person can create a Customer record.
-- Schedule “Job” creation must create/update a Job record (Schedule is a view + creation surface, not a separate source of truth for jobs).
-- Finance entries may optionally link to a Job (recommended for revenue lines).
+Frontend:
+- Next.js (App Router)
+- TypeScript
+- Server Components where appropriate
+- Client Components only when necessary
 
-## 2.3 Status Rules
-- Jobs have lifecycle statuses:
-  - `lead` → `scheduled` → `completed` → `paid`
-- Customers have types:
-  - `customer` | `prospect`
+Backend:
+- Supabase Edge Functions (primary backend logic layer)
+
+Database:
+- Supabase Postgres
+
+Authentication:
+- Supabase Auth (email/password only in v1)
+
+Storage:
+- Supabase Storage (private buckets)
+
+AI:
+- OpenAI API
+- LangGraph for orchestration
+
+Billing:
+- Stripe
+
+Hosting:
+- Vercel (frontend)
+- Supabase (DB/Auth/Storage/Functions)
 
 ---
 
-# 3. Data Model (Tables)
+# 2. Environment Variables (REQUIRED STRUCTURE)
 
-> All tables include: `id (uuid)`, `company_id (uuid)`, `created_at`, `updated_at`, `created_by`, `updated_by`.
+These must exist:
 
-## 3.1 users
-- `id (uuid)` (auth provider id or mapped)
-- `company_id (uuid)`
-- `email (text, unique)`
-- `name (text, nullable)`
-- `role (text)` default: `owner` (v1: owner only, optional staff later)
+Supabase:
+- NEXT_PUBLIC_SUPABASE_URL=
+- NEXT_PUBLIC_SUPABASE_ANON_KEY=
+- SUPABASE_SERVICE_ROLE_KEY=  (SERVER ONLY)
 
-## 3.2 companies
-- `id (uuid)`
-- `name (text)`
-- `service_type (text)` (detailer, window_washing, hvac, etc.)
-- `phone (text, nullable)`
-- `address (text, nullable)`
-- `employees_count (int, nullable)`
-- `years_in_business (int, nullable)`
-- `estimated_revenue (numeric, nullable)`
-- `referral_source (text, nullable)`
-- `subscription_status (text)` (trial, active, canceled)
-- `trial_started_at (timestamptz, nullable)`
-- `trial_ends_at (timestamptz, nullable)`
+OpenAI:
+- OPENAI_API_KEY=  (SERVER ONLY — Edge Function only)
 
-## 3.3 customers
-- `id (uuid)`
-- `company_id (uuid)`
-- `type (text)` enum: `customer` | `prospect`
-- `name (text)`
-- `email (text, nullable)`
-- `phone (text, nullable)`
-- `address (text, nullable)`
-- `notes (text, nullable)`
-- `source (text, nullable)` (lead source / reference)
+Stripe:
+- STRIPE_SECRET_KEY=
+- STRIPE_WEBHOOK_SECRET=
+- NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=
+
+Rules:
+- NEVER expose service role key in client.
+- NEVER expose OpenAI key in client.
+- All AI calls must occur in Edge Functions.
+
+---
+
+# 3. Multi-Tenancy Model (CRITICAL)
+
+## 3.1 Core Rule
+
+Every table except companies must contain:
+
+- company_id (uuid, NOT NULL)
+
+Every query must filter by company_id.
+
+No exceptions.
+
+---
+
+## 3.2 User Model
+
+users table:
+
+- id (uuid) = auth.uid()
+- company_id (uuid)
+- email
+- role (default: owner)
+
+Each user belongs to exactly ONE company in v1.
+
+---
+
+# 4. Database Schema (STRICT)
+
+All tables must include:
+
+- id uuid primary key
+- company_id uuid not null
+- created_at timestamptz default now()
+- updated_at timestamptz default now()
+- created_by uuid
+- updated_by uuid
+
+---
+
+## 4.1 companies
+
+- id
+- name
+- service_type
+- phone
+- address
+- employees_count
+- years_in_business
+- estimated_revenue
+- referral_source
+- subscription_status (trial | active | canceled)
+- trial_started_at
+- trial_ends_at
+
+---
+
+## 4.2 customers
+
+- id
+- company_id
+- type (customer | prospect)
+- name
+- email
+- phone
+- address
+- notes
+- source
 
 Indexes:
-- `(company_id, created_at desc)`
-- `(company_id, name)`
-- Optional: full-text search on name/address
+- (company_id, created_at DESC)
+- (company_id, name)
 
-## 3.4 jobs
-- `id (uuid)`
-- `company_id (uuid)`
-- `customer_id (uuid, nullable)` (nullable to allow “lead job” before customer created)
-- `customer_name (text, nullable)` (snapshot)
-- `service_type (text, nullable)` (e.g., “Interior Detail”)
-- `status (text)` enum: `lead` | `scheduled` | `completed` | `paid`
-- `scheduled_start (timestamptz, nullable)`
-- `scheduled_end (timestamptz, nullable)`
-- `address (text, nullable)`
-- `price (numeric, nullable)`
-- `notes (text, nullable)`
-- `source (text, nullable)` (where job came from)
+---
+
+## 4.3 jobs
+
+- id
+- company_id
+- customer_id
+- customer_name (snapshot)
+- service_type
+- status (lead | scheduled | completed | paid)
+- scheduled_start
+- scheduled_end
+- address
+- price
+- notes
+- source
 
 Indexes:
-- `(company_id, scheduled_start)`
-- `(company_id, status)`
-- `(company_id, created_at desc)`
+- (company_id, scheduled_start)
+- (company_id, status)
+- (company_id, created_at DESC)
 
-## 3.5 job_photos
-- `id (uuid)`
-- `company_id (uuid)`
-- `job_id (uuid)`
-- `storage_path (text)`
-- `caption (text, nullable)`
+---
 
-## 3.6 calendar_events
-> In v1, Jobs appear on the calendar from the Jobs table. Calendar Events below are for non-job items.
-- `id (uuid)`
-- `company_id (uuid)`
-- `type (text)` enum: `event` | `task`
-- `title (text)`
-- `start_at (timestamptz)`
-- `end_at (timestamptz, nullable)`
-- `location (text, nullable)`
-- `notes (text, nullable)`
+## 4.4 finance_entries
+
+- id
+- company_id
+- type (revenue | expense)
+- job_id
+- title
+- category
+- amount (positive numeric only)
+- entry_date
+- notes
 
 Indexes:
-- `(company_id, start_at)`
+- (company_id, entry_date)
+- (company_id, type)
 
-## 3.7 finance_entries
-- `id (uuid)`
-- `company_id (uuid)`
-- `type (text)` enum: `revenue` | `expense`
-- `job_id (uuid, nullable)`
-- `title (text)` (e.g., “Job Payment”, “Supplies”)
-- `category (text, nullable)` (optional)
-- `amount (numeric)` (positive value; type determines direction)
-- `entry_date (date)` (the date it counts toward)
-- `notes (text, nullable)`
+---
+
+## 4.5 marketing_assets
+
+- id
+- company_id
+- channel (social_post | email | sms | flyer)
+- context
+- content
+- status (draft)
+- deleted_at
 
 Indexes:
-- `(company_id, entry_date)`
-- `(company_id, type)`
-
-## 3.8 marketing_assets
-- `id (uuid)`
-- `company_id (uuid)`
-- `channel (text)` enum: `social_post` | `email` | `sms` | `flyer`
-- `context (text, nullable)` (user prompt / purpose)
-- `content (text)` (generated text)
-- `status (text)` enum: `draft` | `saved` (v1: just draft/history)
-- `deleted_at (timestamptz, nullable)`
-
-Indexes:
-- `(company_id, created_at desc)`
-- `(company_id, channel)`
+- (company_id, created_at DESC)
+- (company_id, channel)
 
 ---
 
-# 4. API Design (Route Handlers / Edge Functions)
+# 5. RLS (ROW LEVEL SECURITY) — MANDATORY
 
-## 4.1 Auth / Company
-- `POST /api/onboarding`
-  - Input: onboarding fields
-  - Output: company + user created, session established
-- `GET /api/me`
-  - Output: current user + company summary
-- `PATCH /api/company`
-  - Update company info
+RLS must be enabled on:
 
-## 4.2 Jobs
-- `GET /api/jobs?filter=upcoming|past|all&sort=scheduled_start|created_at&dir=asc|desc&query=...`
-- `POST /api/jobs`
-- `GET /api/jobs/:id`
-- `PATCH /api/jobs/:id`
-- `DELETE /api/jobs/:id` (optional v1)
-
-Job Photo Upload:
-- `POST /api/jobs/:id/photos` (returns signed upload URL or handles upload)
-- `DELETE /api/job-photos/:id`
-
-## 4.3 Customers
-- `GET /api/customers?type=customer|prospect|all&sort=name|created_at&query=...`
-- `POST /api/customers`
-- `GET /api/customers/:id`
-- `PATCH /api/customers/:id`
-
-## 4.4 Schedule
-- `GET /api/schedule?start=YYYY-MM-DD&end=YYYY-MM-DD`
-  - Returns:
-    - Jobs within date range (from `jobs.scheduled_start`)
-    - Calendar events within date range (from `calendar_events`)
-- `POST /api/schedule/event`
-  - Creates `calendar_events` row with `type=event`
-- `POST /api/schedule/task`
-  - Creates `calendar_events` row with `type=task`
-- `POST /api/schedule/job`
-  - Creates a Job (same as `POST /api/jobs`) but from calendar UI
-
-## 4.5 Finance
-- `GET /api/finance/summary?range=week|month|year&anchor=YYYY-MM-DD`
-  - Returns totals: revenue, expenses, net
-- `GET /api/finance/entries?type=revenue|expense|all&start=...&end=...`
-- `POST /api/finance/entries`
-- `PATCH /api/finance/entries/:id`
-- `DELETE /api/finance/entries/:id` (optional v1)
-
-## 4.6 Marketing (AI only here)
-- `POST /api/marketing/generate`
-  - Input:
-    - `channel` (social_post/email/sms/flyer)
-    - `context` (optional)
-    - `company_id` (derived from session)
-  - Output:
-    - generated `content`
-    - saved `marketing_assets` record (status=draft)
-- `GET /api/marketing/history?channel=...`
-- `DELETE /api/marketing/assets/:id` (soft delete)
+- customers
+- jobs
+- finance_entries
+- marketing_assets
+- calendar_events
+- job_photos
 
 ---
 
-# 5. UI Components (Low-Level)
+## 5.1 RLS Policy Pattern
 
-## 5.1 Shared Layout Components
-- `AppShell`
-  - Left sidebar nav
-  - Top header title
-  - Content area
-- `SidebarNavItem` (active highlight)
-- `PageHeader` (title + optional actions)
-- `DataTable`
-  - sortable columns
-  - hover highlight
-  - empty states
-  - loading skeleton
-- `Modal`
-  - darkened backdrop
-  - close (X top right)
-  - Save bottom right
+SELECT:
+Allow only where company_id = user's company_id
 
-## 5.2 Forms & Validation
-- All create/edit modals use the same structure:
-  - client-side validation (required fields)
-  - server-side validation (final authority)
-- Common form fields:
-  - `CustomerSelect` (searchable dropdown)
-  - Date picker / time picker
-  - Currency input for price/amount
+INSERT:
+Allow only where company_id matches user's company_id
+
+UPDATE:
+Same restriction
+
+DELETE:
+Same restriction
 
 ---
 
-# 6. Page-by-Page Behaviors (Implementation Notes)
+## 5.2 Mapping Rule
 
-## 6.1 Dashboard
-- Fetch:
-  - Jobs for next 7 days
-  - Today schedule items
-  - New prospects (last 30 days)
-  - Finance summary (month)
-  - Marketing reminders (simple rules)
-- Clicking modules routes to page
+Use:
 
-## 6.2 Jobs Page
-- Default filter: upcoming
-- Sorting:
-  - default by scheduled date ascending
-- Create/edit:
-  - Modal overlay
-  - Save triggers POST/PATCH
-- “Customer” entry:
-  - searchable select existing customers
-  - if user types new name and selects “Create new customer”, create customer first then job
+auth.uid() → users table → company_id
 
-## 6.3 Customers Page
-- Default sort: created_at desc
-- “Type” filter for prospect vs customer
-- Customer details show job history:
-  - `GET /api/jobs?customer_id=...`
-
-## 6.4 Schedule Page
-- Calendar grid view
-- Source of truth:
-  - Jobs come from `jobs` table
-  - Events/tasks come from `calendar_events`
-- Create:
-  - “Job” uses same fields as Job modal
-  - “Event/Task” uses simplified fields
-
-## 6.5 Finance Page
-- Range switcher changes queries
-- Totals computed server-side (to avoid client mismatch)
-- Revenue/expense entries allow optional `job_id`
-- Adding entry re-fetches summary + list
-
-## 6.6 Marketing Page
-- Only AI-driven page
-- Generate flow:
-  1) User selects channel
-  2) (Optional) adds context
-  3) POST `/api/marketing/generate`
-  4) Result shows in output box
-  5) Automatically saved to history
-- History:
-  - list of generated assets
-  - delete = soft delete
+Policies must reference this mapping.
 
 ---
 
-# 7. Security & Authorization
+## 5.3 DO NOT
 
-## 7.1 Auth
-- All `/app/*` pages require authenticated session (except public site)
-- API routes require authentication
-
-## 7.2 Authorization
-- Every query enforces `company_id = session.company_id`
-- Reject requests where company mismatch
-
-## 7.3 Data Protection
-- Passwords handled by auth provider (never stored in app DB directly)
-- Use HTTPS in production
-- Store uploaded files in private buckets with signed URLs
+- DO NOT rely on frontend filtering
+- DO NOT disable RLS
+- DO NOT use service role for user-scoped operations
 
 ---
 
-# 8. Error Handling & Observability
+# 6. Edge Function Requirements
 
-## 8.1 Error States (UI)
-- Empty lists show friendly empty state + CTA (“Add your first job”)
-- Form submission errors show field-level messages
-- Network errors show toast + retry
+All Edge Functions must:
 
-## 8.2 Logging (Server)
-- Log:
-  - API request id
-  - user id
-  - company id
-  - operation name (create job, edit customer, generate marketing)
-- Avoid logging sensitive data (passwords, tokens)
+1. Validate JWT
+2. Extract user id
+3. Load company_id
+4. Enforce company_id filtering
+5. Validate input schema
+6. Return structured JSON
+
+No business logic in frontend.
 
 ---
 
-# 9. Performance Considerations
+# 7. Marketing AI Architecture (LangGraph Required)
 
-- Pagination for large lists (jobs/customers/finance entries)
-- Debounced search input
-- Indexed queries (company_id + sort field)
-- Cache common dashboard queries (short TTL) if needed
+AI logic MUST only exist inside marketing module.
 
 ---
 
-# 10. Future Enhancements (Post-v1)
-- Roles/permissions (owner/manager/staff)
-- Invoices + payment tracking
-- Review reminders automation (non-AI, scheduled messages)
-- Inventory tracking
-- Integrations (Google Calendar, Stripe, etc.)
-- Auto-posting / scheduling (later)
+## 7.1 LangGraph Node Design
+
+Node 1 — LoadCompanyContextNode
+- Pull company name + service type
+
+Node 2 — ValidateRequestNode
+- Validate channel
+- Validate length constraints
+
+Node 3 — AssemblePromptInputsNode
+- Build structured prompt input
+
+Node 4 — GenerateCopyNode (ONLY AI CALL)
+- Call OpenAI
+- Generate formatted output
+
+Node 5 — PostProcessNode
+- Enforce SMS length
+- Trim whitespace
+- Safety filtering
+
+Node 6 — PersistMarketingAssetNode
+- Insert into marketing_assets
+
+AI must not:
+- Query database directly
+- Perform validation
+- Decide company scoping
+
+---
+
+# 8. Stripe Billing Architecture
+
+Endpoints:
+
+/functions/v1/billing/create-checkout-session
+/functions/v1/billing/webhook
+
+Rules:
+
+- Webhook verifies signature
+- Webhook updates company.subscription_status
+- Never trust client payment result
+
+---
+
+# 9. UI Layout Contract
+
+Shared AppShell component required.
+
+Desktop:
+- Sidebar visible permanently
+
+Mobile:
+- Sidebar hidden
+- Hamburger menu toggles drawer
+
+Tables:
+- Must collapse into card layout on small screens
+- No horizontal scroll
+
+Design must look professional at all screen sizes.
+
+---
+
+# 10. Security Requirements
+
+- HTTPS only
+- Signed URLs for storage
+- Short-lived upload URLs
+- Input validation server-side
+- Structured error responses
+- Log user id + company id for critical actions
+
+---
+
+# 11. Performance
+
+- Pagination required for lists
+- Indexed queries mandatory
+- Debounced search inputs
+- Finance totals calculated server-side
+
+---
+
+# 12. Strict Separation Rules
+
+AI only in Marketing module.
+
+Stripe only in Billing module.
+
+No cross-module coupling.
+
+No direct DB access from client (except via Supabase client under RLS).
+
+No service role key in browser.
+
+---
+
+# 13. Commenting Requirement
+
+All core logic must include comments explaining:
+
+- What it does
+- Why it exists
+- Security assumptions
+- Company scoping logic
+
+This project prioritizes clarity over cleverness.
