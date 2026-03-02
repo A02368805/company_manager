@@ -1,4 +1,4 @@
-# 📘 Service Business Manager  
+# 📘 Ergon Management 
 ## High-Level Product & System Specification (v1.1)
 
 ---
@@ -7,7 +7,7 @@
 
 ## 1.1 Vision
 
-Service Business Manager is a multi-tenant SaaS platform designed to help small service-based businesses:
+Ergon Management is a multi-tenant SaaS platform designed to help small service-based businesses:
 
 - Organize their operations
 - Track revenue and expenses

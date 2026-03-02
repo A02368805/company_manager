@@ -1,4 +1,4 @@
-# 📘 Service Business Manager  
+# 📘 Ergon Management 
 ## Low-Level Technical Design (v1 – Strict Architecture Contract)
 
 ---
