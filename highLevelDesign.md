@@ -191,10 +191,10 @@ Passwords are never stored directly in application tables.
 - Password
 - Company name
 - Service type
+- Phone Number
 
 ### Optional Fields
 
-- Phone
 - Address
 - Number of employees
 - Years in business
