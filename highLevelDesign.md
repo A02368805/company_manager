@@ -109,6 +109,17 @@ No AI is used in:
 - Job management
 - Dashboard analytics
 
+## Future Mobile App Direction (Post-v1)
+
+v1 is a responsive web application optimized for desktop and mobile browsers.
+
+A future version may add a dedicated mobile application (iOS/Android).  
+To support this, backend APIs must be designed as client-agnostic services:
+
+- Core business logic and validation live in Supabase Edge Functions.
+- Edge Functions expose stable JSON contracts that any client can call.
+- The web UI should not be the only place rules are enforced.
+
 ---
 
 # 4. Public Website (Unauthenticated)

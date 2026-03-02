@@ -65,6 +65,13 @@ NON-NEGOTIABLE CONSTRAINTS
 - Every Edge Function must explain: what it does, why, inputs/outputs, security assumptions, company scoping.
 - RLS policies and migrations must be clearly documented with comments.
 
+10) Future mobile app compatibility (do not overbuild, but stay compatible)
+- v1 is a responsive web app.
+- The backend API (Edge Functions) must be client-agnostic so a future mobile app can reuse it.
+- Do not embed business rules only in React components; keep shared logic in /lib where possible.
+- Prefer stable JSON request/response contracts for Edge Functions.
+- Avoid browser-only assumptions in core flows (auth, API calling, data validation).
+
 ========================
 IMPLEMENTATION GUIDELINES
 ========================
@@ -90,5 +97,14 @@ C) Validation and errors
 D) Do NOT invent features
 - Do not add new modules outside the MVP.
 - Do not add auto-posting, bank sync, payroll, inventory automation, or staff roles in v1.
+
+E) Edge Function contract clarity
+- Every Edge Function must clearly document its JSON request schema.
+- Every Edge Function must clearly document its JSON response schema.
+- Use comments at the top of each function to describe:
+  - Expected request body
+  - Expected query parameters
+  - Authentication requirements
+  - Response shape (success and error)
 
 When unsure, stop and ask for clarification instead of making architectural assumptions.

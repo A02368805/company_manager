@@ -15,4 +15,9 @@ Key non-negotiables:
 - AI ONLY in Marketing via LangGraph
 - Stripe isolated to Billing endpoints
 - Responsive professional UI (desktop sidebar, mobile hamburger drawer)
+- Repo structure contract must be followed (do not invent new structure)
+- No secrets in client code (service role key, OpenAI key, Stripe secrets)
+- Edge Functions must document request/response JSON schemas
+- Job photos supported via private storage + signed upload URLs (Edge Function controlled)
+- API is client-agnostic (web now, mobile app later)
 - Lots of comments in core logic

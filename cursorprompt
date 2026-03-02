@@ -1,14 +1,66 @@
-Follow /docs/service_business_manager_high_level_design_v1.md and /docs/service_business_manager_low_level_design_v1.md exactly.
+You are working inside the Service Business Manager repository.
 
-Do not change architecture.
-Do not add features.
-RLS and company_id scoping must be enforced everywhere.
-Supabase Auth only.
-Edge Functions only for backend logic.
-AI only in Marketing via LangGraph.
-Stripe only in Billing module.
-No secrets in client code.
-All pages must use the shared AppShell with responsive sidebar behavior.
-Add lots of comments to core logic.
+You must strictly follow:
 
-Before coding, summarize the plan and list which files will be created/changed.
+- docs/service_business_manager_high_level_design_v1.md
+- docs/service_business_manager_low_level_design_v1.md
+- .cursorrules
+
+If there is any conflict, the Low-Level Design wins.
+
+========================
+ARCHITECTURAL CONSTRAINTS (NON-NEGOTIABLE)
+========================
+
+- Do not change architecture.
+- Do not add features beyond MVP.
+- This is a multi-tenant SaaS.
+- RLS and company_id scoping must be enforced everywhere.
+- Supabase Auth only (email/password).
+- Supabase Edge Functions are the backend layer.
+- No separate backend server.
+- AI only in Marketing module via LangGraph.
+- Stripe only in Billing module.
+- No secrets in client code.
+- All authenticated pages must use shared AppShell layout.
+- Responsive sidebar: visible on desktop, hamburger drawer on mobile.
+- No horizontal scrolling.
+- Add lots of comments to core logic.
+- Every Edge Function must document its request and response JSON schema.
+
+========================
+PLANNING PHASE (DO NOT WRITE CODE YET)
+========================
+
+Before writing any code, produce a structured implementation plan that includes:
+
+1) Proposed repo folder structure (paths only, no code yet)
+
+2) Database migration plan:
+   - All tables
+   - Enums
+   - Indexes
+   - RLS enablement list
+   - RLS policy list per table
+
+3) Complete Edge Function list:
+   - Endpoint path
+   - Purpose
+   - Authentication requirement
+   - Request JSON schema
+   - Response JSON schema
+   - Company scoping behavior
+
+4) Frontend route map:
+   - (public) routes
+   - (app) authenticated routes
+   - Shared layout usage
+
+5) MVP build order:
+   - Step-by-step implementation sequence
+   - Start with auth + onboarding
+   - Then move through modules logically
+
+After presenting the plan, STOP and wait for my approval before generating any code.
+
+If anything is unclear, ask questions before proceeding.
