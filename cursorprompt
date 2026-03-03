@@ -2,8 +2,8 @@ You are working inside the Ergon Management repository.
 
 You must strictly follow:
 
-- docs/service_business_manager_high_level_design_v1.md
-- docs/service_business_manager_low_level_design_v1.md
+- docs/highLevelDesign.md
+- docs/lowLevelDesign.md
 - .cursorrules
 
 If there is any conflict, the Low-Level Design wins.
