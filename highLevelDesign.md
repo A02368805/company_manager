@@ -438,21 +438,278 @@ Must NOT include:
 
 ---
 
-# 14. Design System Placeholder
+# 14. Design System Specification (v1)
 
-To be defined:
+This design system defines the visual language of the platform.  
+The goal is to create a product that feels:
 
-- Primary color
-- Secondary color
-- Accent color
-- Background color
-- Text color
-- Success / Warning / Error colors
-- Typography scale
-- Spacing system
-- Button styles
-- Card styles
-- Border radius
-- Shadow system
+- Professional
+- Calm
+- Stable
+- Clean
+- Purpose-built for serious business use
+
+This is an operating system for service companies — clarity and consistency are more important than trendiness.
+
+---
+
+# 1. Color System
+
+## Brand Colors
+
+- **Primary Color:** `#86BBD8`
+- **Secondary Color:** `#444444`
+- **Accent Color:** `#86B380`
+- **Background Color:** `#131B41`
+- **Text Color:** `#FFFFF6`
+
+### Usage Rules
+
+- Primary color is used for:
+  - Primary buttons
+  - Active states
+  - Focus states
+  - Key links
+
+- Secondary color is used for:
+  - Secondary buttons
+  - Subheadings
+  - Neutral UI elements
+
+- Accent color is used for:
+  - Highlights
+  - Special indicators
+  - AI suggestions
+  - Positive emphasis (non-semantic)
+
+- Background color is the base layout background.
+- Text color is used on dark backgrounds for readability.
+
+---
+
+## Semantic Colors
+
+These colors communicate meaning and must only be used semantically.
+
+- **Success:** `#4CAF50`
+- **Warning:** `#F4A261`
+- **Error:** `#E63946`
+- **Info:** `#5DA9E9`
+
+### Semantic Usage
+
+- Success:
+  - Completed jobs
+  - Paid invoices
+  - Successful actions
+
+- Warning:
+  - Overdue tasks
+  - Low inventory
+  - Upcoming deadlines
+
+- Error:
+  - Failed payments
+  - Validation errors
+  - Destructive actions
+
+- Info:
+  - AI suggestions
+  - Neutral alerts
+
+Semantic colors must never be used decoratively.
+
+---
+
+# 2. Typography System
+
+## Font Philosophy
+
+- One primary font family only.
+- Clean, modern, highly readable.
+- Avoid excessive weights.
+
+Recommended:
+- Inter
+- Geist
+- System UI stack
+
+---
+
+## Typography Scale
+
+| Style        | Use Case |
+|-------------|----------|
+| H1          | Page titles (Dashboard, Jobs, Marketing) |
+| H2          | Section headers |
+| H3          | Card headers |
+| Body Large  | Important metrics / summaries |
+| Body        | Standard text |
+| Small       | Labels / metadata |
+| Caption     | Secondary or muted info |
+
+### Hierarchy Rules
+
+- Clear vertical rhythm.
+- No arbitrary font sizes.
+- Maintain consistent spacing between headings and content.
+
+---
+
+# 3. Spacing System
+
+The system uses a **4px base unit scale**.
+
+## Spacing Scale
+
+- 4px
+- 8px
+- 12px
+- 16px
+- 24px
+- 32px
+- 48px
+
+### Rules
+
+- Never use random spacing values.
+- All padding and margins must follow this scale.
+- Cards must have consistent internal padding.
+- Sections must maintain consistent vertical spacing.
+
+Consistency in spacing increases perceived quality.
+
+---
+
+# 4. Button System
+
+Buttons must be consistent across the entire application.
+
+## Button Variants
+
+### Primary Button
+- Background: Primary color
+- Text: High contrast (light)
+- Used for main action on page
+- Hover: Slight darken
+- Focus: Clear outline
+
+Examples:
+- Create Job
+- Send Invoice
+- Generate Marketing Content
+
+---
+
+### Secondary Button
+- Outline or muted background
+- Used for alternative actions
+
+---
+
+### Ghost Button
+- Minimal styling
+- Used for low-priority actions
+
+---
+
+### Danger Button
+- Background: Error color
+- Used only for destructive actions
+
+Examples:
+- Delete
+- Cancel Invoice
+- Remove User
+
+---
+
+## Button Shape
+
+- Medium border radius
+- Not pill-shaped
+- Not sharp-cornered
+- Consistent across all buttons
+
+---
+
+# 5. Card System
+
+Cards are a primary layout structure.
+
+Used for:
+- Dashboard widgets
+- Jobs
+- Customers
+- Finance summaries
+- Marketing drafts
+
+## Card Design Rules
+
+- Soft background
+- Subtle border or low shadow
+- Consistent padding (16px–24px)
+- Clear header + body structure
+- No decorative gradients
+
+Cards should feel structured and professional.
+
+---
+
+# 6. Border Radius
+
+Use a consistent radius scale.
+
+## Radius Scale
+
+- Small: Inputs, badges
+- Medium: Buttons, cards
+- Large: Modals
+
+Do not mix arbitrary rounding values.
+
+Consistency is critical for polish.
+
+---
+
+# 7. Shadow System
+
+Shadows communicate elevation — not decoration.
+
+## Elevation Levels
+
+| Level | Usage |
+|-------|--------|
+| None  | Flat sections |
+| Low   | Cards |
+| Medium| Dropdowns / Popovers |
+| High  | Modals |
+
+### Shadow Rules
+
+- Subtle and soft
+- No dramatic floating UI
+- Prefer minimalism over depth-heavy styling
+
+---
+
+# 8. Core Design Principle
+
+> This is a professional business operating system.
+
+The UI must communicate:
+
+- Reliability
+- Structure
+- Clarity
+- Stability
+
+Avoid:
+- Over-design
+- Trendy gradients
+- Excess animations
+- Flashy UI effects
+
+The design should help users focus on running their business.
 
 Design must communicate professionalism and trust.
